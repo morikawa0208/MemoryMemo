@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="ja" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MemoryMemo - 人との会話記録アプリ</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Alpine.js for reactive UI state -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                    },
+                    colors: {
+                        stone: {
+                            50: '#fafaf9',
+                            100: '#f5f5f4',
+                            200: '#e7e5e4',
+                            300: '#d6d3d1',
+                            400: '#a8a29e',
+                            500: '#78716c',
+                            600: '#57534e',
+                            700: '#44403c',
+                            800: '#292524',
+                            900: '#1c1917',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        /* Custom scrollbar for clean minimal aesthetic */
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #d6d3d1;
+            border-radius: 9999px;
+        }
+    </style>
+</head>
+<body class="h-full bg-stone-50 text-stone-800 antialiased selection:bg-stone-200" x-data="appData()" x-init="init()">
+
+    <!-- App Container (Mobile First, Max-width constraint for tablet/desktop) -->
+    <div class="max-w-md mx-auto h-full flex flex-col bg-stone-50 shadow-2xl relative overflow-hidden">
+
+        <!-- Header -->
+        <header class="px-6 py-4 bg-stone-50/80 backdrop-blur-md border-b border-stone-200/60 flex items-center justify-between z-10 shrink-0">
+            <div class="flex items-center space-x-2">
+                <span class="w-2 h-2 rounded-full bg-stone-800"></span>
+                <h1 class="text-sm font-semibold tracking-widest uppercase text-stone-800">MemoryMemo</h1>
+            </div>
+            <div class="flex items-center space-x-2">
+                <!-- Settings Button (API Key setup) -->
+                <button @click="openSettingsModal()" class="p-2 text-stone-500 hover:text-stone-800 transition rounded-xl bg-stone-100 hover:bg-stone-200" title="API設定">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                </button>
+                <!-- AI Assistant Quick Trigger -->
+                <button @click="openAiSummaryModal()" class="text-xs px-3 py-1.5 rounded-full bg-stone-900 text-stone-50 font-medium hover:bg-stone-800 transition flex items-center space-x-1 shadow-sm">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    <span x-text="activeTab === 'detail' && selectedPerson ? 'AIまとめ' : 'AIアシスト'"></span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content Area with Dynamic Padding for Bottom Navigation & Action Bar -->
+        <main class="flex-1 overflow-y-auto pb-36 pt-2">
+
+            <!-- TAB 1: 人物一覧ページ -->
+            <div x-show="activeTab === 'list'" class="px-5 py-3 space-y-4">
+                
+                <!-- Tag Filter Chips -->
+                <div class="flex items-center space-x-2 overflow-x-auto pb-1 no-scrollbar">
+                    <button @click="selectedTagFilter = ''" 
+                        :class="selectedTagFilter === '' ? 'bg-stone-900 text-stone-50' : 'bg-stone-200/70 text-stone-600 hover:bg-stone-300'"
+                        class="text-xs px-3 py-1.5 rounded-full font-medium transition shrink-0">
+                        すべて
+                    </button>
+                    <template x-for="tag in allTags" :key="tag">
+                        <button @click="selectedTagFilter = tag" 
+                            :class="selectedTagFilter === tag ? 'bg-stone-900 text-stone-50' : 'bg-stone-200/70 text-stone-600 hover:bg-stone-300'"
+                            class="text-xs px-3 py-1.5 rounded-full font-medium transition shrink-0" x-text="tag">
+                        </button>
+                    </template>
+                </div>
+
+                <!-- Empty State -->
+                <template x-if="filteredPersons.length === 0">
+                    <div class="text-center py-16 px-4">
+                        <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-stone-200 flex items-center justify-center text-stone-400">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                        </div>
+                        <p class="text-sm font-medium text-stone-600">人物が見つかりません</p>
+                        <p class="text-xs text-stone-400 mt-1">下の追加ボタンから人物を登録しましょう</p>
+                    </div>
+                </template>
+
+                <!-- Persons List Cards (Phonebook style, sorted alphabetically) -->
+                <div class="space-y-2.5">
+                    <template x-for="person in filteredPersons" :key="person.id">
+                        <div @click="selectPerson(person)" class="bg-white p-4 rounded-2xl border border-stone-200/80 shadow-sm hover:border-stone-300 transition cursor-pointer flex items-center justify-between group">
+                            <div class="flex items-center space-x-3.5 min-w-0">
+                                <!-- Avatar Initial -->
+                                <div class="w-10 h-10 rounded-full bg-stone-100 border border-stone-200 flex items-center justify-center font-semibold text-stone-700 text-sm shrink-0" x-text="person.name.charAt(0)"></div>
+                                <div class="min-w-0">
+                                    <div class="flex items-center space-x-2">
+                                        <h3 class="text-sm font-semibold text-stone-800 truncate" x-text="person.name"></h3>
+                                        <span class="text-[10px] px-2 py-0.5 rounded-full bg-stone-100 text-stone-500 font-medium shrink-0" x-text="person.tag || '未分類'"></span>
+                                    </div>
+                                    <p class="text-xs text-stone-400 truncate mt-0.5" x-text="getLastMemo(person.id) || 'まだメモはありません'"></p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-1 shrink-0 ml-2">
+                                <button @click.stop="openEditPersonModal(person)" class="p-2 text-stone-400 hover:text-stone-700 transition" title="編集">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                </button>
+                                <svg class="w-4 h-4 text-stone-300 group-hover:text-stone-600 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- TAB 2: 人物詳細ページ（メモ確認・追加・編集） -->
+            <div x-show="activeTab === 'detail'" class="px-5 py-3 space-y-5">
+                <template x-if="selectedPerson">
+                    <div class="space-y-5">
+                        <!-- Person Header Details -->
+                        <div class="bg-white p-4 rounded-2xl border border-stone-200/80 shadow-sm flex items-center justify-between">
+                            <div class="flex items-center space-x-3.5">
+                                <div class="w-12 h-12 rounded-full bg-stone-900 text-stone-50 flex items-center justify-center font-bold text-base shadow-sm" x-text="selectedPerson.name.charAt(0)"></div>
+                                <div>
+                                    <h2 class="text-base font-bold text-stone-800" x-text="selectedPerson.name"></h2>
+                                    <div class="flex items-center space-x-2 mt-0.5">
+                                        <span class="text-[10px] px-2 py-0.5 rounded-full bg-stone-100 text-stone-600 font-medium" x-text="selectedPerson.tag || '未分類'"></span>
+                                        <span class="text-xs text-stone-400" x-text="selectedPerson.relation || ''"></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <button @click="activeTab = 'list'" class="text-xs text-stone-500 hover:text-stone-800 px-3 py-1.5 rounded-lg bg-stone-100 transition font-medium">
+                                一覧へ戻る
+                            </button>
+                        </div>
+
+                        <!-- Memos Timeline / List -->
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between px-1">
+                                <h3 class="text-xs font-semibold uppercase tracking-wider text-stone-400">会話・特徴の記録</h3>
+                                <span class="text-xs text-stone-400" x-text="currentPersonMemos.length + '件のメモ'"></span>
+                            </div>
+
+                            <template x-if="currentPersonMemos.length === 0">
+                                <div class="bg-white rounded-2xl p-8 text-center border border-dashed border-stone-200">
+                                    <p class="text-xs text-stone-400">まだ会話の記録がありません。<br>下の入力欄から会話や相手の情報を残しましょう。</p>
+                                </div>
+                            </template>
+
+                            <div class="space-y-2.5">
+                                <template x-for="memo in currentPersonMemos" :key="memo.id">
+                                    <div class="bg-white p-4 rounded-2xl border border-stone-200/80 shadow-sm space-y-2">
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-[11px] text-stone-400 font-medium" x-text="formatDate(memo.date)"></span>
+                                            <div class="flex items-center space-x-1">
+                                                <button @click="openEditMemoModal(memo)" class="p-1 text-stone-400 hover:text-stone-700 transition" title="編集">
+                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                                </button>
+                                                <button @click="deleteMemo(memo.id)" class="p-1 text-stone-400 hover:text-rose-600 transition" title="削除">
+                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <p class="text-sm text-stone-700 whitespace-pre-wrap leading-relaxed" x-text="memo.content"></p>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+        </main>
+
+        <!-- FIXED BOTTOM CONTROL AREA (Tab bar + Search/Add on List or Input on Detail) -->
+        <div class="absolute bottom-0 left-0 right-0 bg-stone-50/95 backdrop-blur-lg border-t border-stone-200/80 z-20 shadow-lg">
+
+            <!-- TAB 1 BOTTOM CONTROLS (Search & Add Person) -->
+            <div x-show="activeTab === 'list'" class="px-5 pt-3 pb-2 space-y-2.5">
+                <div class="flex items-center space-x-2">
+                    <div class="relative flex-1">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-stone-400">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                        </span>
+                        <input type="text" x-model="searchQuery" placeholder="名前やタグで検索..." class="w-full pl-9 pr-4 py-2.5 bg-white border border-stone-200 rounded-xl text-sm text-stone-800 placeholder-stone-400 focus:outline-none focus:border-stone-500 transition shadow-sm">
+                    </div>
+                    <button @click="openAddPersonModal()" class="px-4 py-2.5 bg-stone-900 text-stone-50 rounded-xl text-sm font-medium hover:bg-stone-800 transition flex items-center space-x-1 shrink-0 shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                        <span>追加</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- TAB 2 BOTTOM CONTROLS (Quick Memo Input) -->
+            <div x-show="activeTab === 'detail'" class="px-5 pt-3 pb-2 space-y-2">
+                <form @submit.prevent="addMemo()" class="flex items-center space-x-2">
+                    <div class="relative flex-1">
+                        <input type="text" x-model="newMemoContent" placeholder="最近話したこと、趣味、子供のことなど..." class="w-full px-4 py-2.5 bg-white border border-stone-200 rounded-xl text-sm text-stone-800 placeholder-stone-400 focus:outline-none focus:border-stone-500 transition shadow-sm">
+                    </div>
+                    <button type="submit" class="px-4 py-2.5 bg-stone-900 text-stone-50 rounded-xl text-sm font-medium hover:bg-stone-800 transition shrink-0 shadow-sm">
+                        記録
+                    </button>
+                </form>
+            </div>
+
+            <!-- TAB NAVIGATION BAR (Bottom-most) -->
+            <nav class="flex items-center justify-around border-t border-stone-200/60 bg-stone-100/60 py-2">
+                <button @click="activeTab = 'list'" :class="activeTab === 'list' ? 'text-stone-900 font-semibold' : 'text-stone-400 hover:text-stone-600'" class="flex flex-col items-center flex-1 py-1 transition">
+                    <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                    <span class="text-[10px] tracking-wide">人物一覧</span>
+                </button>
+                <button @click="if(selectedPerson) activeTab = 'detail'" :class="activeTab === 'detail' ? 'text-stone-900 font-semibold' : 'text-stone-400 hover:text-stone-600'" class="flex flex-col items-center flex-1 py-1 transition relative">
+                    <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                    <span class="text-[10px] tracking-wide">詳細・メモ</span>
+                    <template x-if="!selectedPerson">
+                        <span class="absolute top-0 right-1/4 w-2 h-2 rounded-full bg-stone-300"></span>
+                    </template>
+                </button>
+            </nav>
+
+        </div>
+
+        <!-- MODAL: Person Add / Edit -->
+        <div x-show="showPersonModal" class="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" x-cloak>
+            <div @click.outside="closePersonModal()" class="bg-white w-full max-w-sm rounded-t-3xl sm:rounded-2xl p-6 space-y-4 shadow-2xl border border-stone-200">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-base font-bold text-stone-800" x-text="isEditingPerson ? '人物情報を編集' : '新しい人物を追加'"></h3>
+                    <button @click="closePersonModal()" class="text-stone-400 hover:text-stone-600 p-1">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <form @submit.prevent="savePerson()" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-stone-600 mb-1">お名前 *</label>
+                        <input type="text" x-model="personForm.name" required placeholder="例: 田中 太郎" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:outline-none focus:border-stone-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-stone-600 mb-1">タグ分類</label>
+                        <input type="text" x-model="personForm.tag" placeholder="例: 仕事, 友人, 趣味" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:outline-none focus:border-stone-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-stone-600 mb-1">関係性・メモ詳細</label>
+                        <input type="text" x-model="personForm.relation" placeholder="例: 前職の同僚、ゴルフ仲間" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:outline-none focus:border-stone-500">
+                    </div>
+                    <div class="flex space-x-2 pt-2">
+                        <template x-if="isEditingPerson">
+                            <button type="button" @click="deletePerson(personForm.id)" class="px-4 py-2.5 rounded-xl border border-rose-200 text-rose-600 text-sm font-medium hover:bg-rose-50 transition">
+                                削除
+                            </button>
+                        </template>
+                        <button type="submit" class="flex-1 py-2.5 bg-stone-900 text-stone-50 rounded-xl text-sm font-medium hover:bg-stone-800 transition">
+                            保存する
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- MODAL: Memo Edit -->
+        <div x-show="showMemoModal" class="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" x-cloak>
+            <div @click.outside="closeMemoModal()" class="bg-white w-full max-w-sm rounded-t-3xl sm:rounded-2xl p-6 space-y-4 shadow-2xl border border-stone-200">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-base font-bold text-stone-800">メモを編集</h3>
+                    <button @click="closeMemoModal()" class="text-stone-400 hover:text-stone-600 p-1">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <form @submit.prevent="updateMemo()" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-stone-600 mb-1">内容</label>
+                        <textarea x-model="memoForm.content" rows="4" required class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:outline-none focus:border-stone-500 resize-none"></textarea>
+                    </div>
+                    <button type="submit" class="w-full py-2.5 bg-stone-900 text-stone-50 rounded-xl text-sm font-medium hover:bg-stone-800 transition">
+                        更新する
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- MODAL: API Key Settings -->
+        <div x-show="showSettingsModal" class="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" x-cloak>
+            <div @click.outside="showSettingsModal = false" class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-2xl p-6 space-y-4 shadow-2xl border border-stone-200">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-base font-bold text-stone-800">APIキーの設定</h3>
+                    <button @click="showSettingsModal = false" class="text-stone-400 hover:text-stone-600 p-1">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <p class="text-xs text-stone-500 leading-relaxed">
+                    GitHub Pagesなどで公開してAI機能（Gemini API）を利用するには、Google AI Studioで取得したGemini APIキーを入力して保存してください（ブラウザのローカルストレージにのみ保存されます）。
+                </p>
+                <div class="space-y-2">
+                    <label class="block text-xs font-semibold text-stone-600">Gemini API Key</label>
+                    <input type="password" x-model="userApiKey" placeholder="AIzaSy..." class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:outline-none focus:border-stone-500">
+                </div>
+                <div class="pt-2">
+                    <button @click="saveApiKey()" class="w-full py-2.5 bg-stone-900 text-stone-50 rounded-xl text-sm font-medium hover:bg-stone-800 transition">
+                        保存する
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL: AI Summary & Assistant -->
+        <div x-show="showAiModal" class="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" x-cloak>
+            <div @click.outside="showAiModal = false" class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-2xl p-6 space-y-4 shadow-2xl border border-stone-200 max-h-[85vh] flex flex-col">
+                <div class="flex items-center justify-between shrink-0">
+                    <div class="flex items-center space-x-2">
+                        <div class="w-7 h-7 rounded-full bg-stone-900 text-stone-50 flex items-center justify-center text-xs">AI</div>
+                        <h3 class="text-base font-bold text-stone-800" x-text="activeTab === 'detail' && selectedPerson ? selectedPerson.name + '様との会話AIまとめ' : 'AIメモアシスタント'"></h3>
+                    </div>
+                    <button @click="showAiModal = false" class="text-stone-400 hover:text-stone-600 p-1">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+
+                <div class="flex-1 overflow-y-auto space-y-3 py-2 text-sm text-stone-700">
+                    <template x-if="aiLoading">
+                        <div class="flex flex-col items-center justify-center py-12 space-y-3">
+                            <div class="w-6 h-6 border-2 border-stone-800 border-t-transparent rounded-full animate-spin"></div>
+                            <p class="text-xs text-stone-400">AIが記憶を整理しています...</p>
+                        </div>
+                    </template>
+                    <template x-if="!aiLoading">
+                        <div class="space-y-4">
+                            <div class="bg-stone-50 p-4 rounded-xl border border-stone-200 leading-relaxed whitespace-pre-wrap text-sm" x-text="aiResultText"></div>
+                        </div>
+                    </template>
+                </div>
+
+                <div class="shrink-0 pt-2 border-t border-stone-100 flex items-center justify-between">
+                    <span class="text-[11px] text-stone-400">Gemini 3 Flash</span>
+                    <button @click="runAiSummary()" class="px-4 py-2 bg-stone-900 text-stone-50 rounded-xl text-xs font-medium hover:bg-stone-800 transition">
+                        もう一度生成する
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        function appData() {
+            return {
+                activeTab: 'list', // 'list' or 'detail'
+                searchQuery: '',
+                selectedTagFilter: '',
+                userApiKey: '',
+                showSettingsModal: false,
+                
+                persons: [
+                    { id: '1', name: '佐藤 健一', tag: '仕事', relation: 'プロジェクトマネージャー' },
+                    { id: '2', name: '鈴木 美咲', tag: '友人', relation: '大学の同級生・カフェ巡り' }
+                ],
+                memos: [
+                    { id: 'm1', personId: '1', content: '来期の新規事業について相談。趣味はキャンプで、最近テントを新調したらしい。', date: '2026-06-10T14:00:00.000Z' },
+                    { id: 'm2', personId: '1', content: 'お子さんが二人（小3と年長）。犬を飼い始めた（トイプードル）。', date: '2026-05-15T10:30:00.000Z' },
+                    { id: 'm3', personId: '2', content: '表参道の新しいカフェでランチ。抹茶ラテが好き。夏に北海道旅行の予定。', date: '2026-06-01T12:00:00.000Z' }
+                ],
+                
+                selectedPerson: null,
+                newMemoContent: '',
+
+                // Modals state
+                showPersonModal: false,
+                isEditingPerson: false,
+                personForm: { id: '', name: '', tag: '', relation: '' },
+
+                showMemoModal: false,
+                memoForm: { id: '', personId: '', content: '' },
+
+                // AI state
+                showAiModal: false,
+                aiLoading: false,
+                aiResultText: '',
+
+                init() {
+                    // Load from localStorage if available
+                    const savedPersons = localStorage.getItem('memorymemo_persons');
+                    const savedMemos = localStorage.getItem('memorymemo_memos');
+                    const savedKey = localStorage.getItem('memorymemo_apikey');
+                    if (savedPersons) this.persons = JSON.parse(savedPersons);
+                    if (savedMemos) this.memos = JSON.parse(savedMemos);
+                    if (savedKey) this.userApiKey = savedKey;
+                },
+
+                saveData() {
+                    localStorage.setItem('memorymemo_persons', JSON.stringify(this.persons));
+                    localStorage.setItem('memorymemo_memos', JSON.stringify(this.memos));
+                },
+
+                saveApiKey() {
+                    localStorage.setItem('memorymemo_apikey', this.userApiKey.trim());
+                    this.showSettingsModal = false;
+                },
+
+                openSettingsModal() {
+                    this.showSettingsModal = true;
+                },
+
+                get allTags() {
+                    const tags = this.persons.map(p => p.tag).filter(t => t && t.trim() !== '');
+                    return [...new Set(tags)];
+                },
+
+                get filteredPersons() {
+                    // Filter and sort alphabetically by name (Japanese phonebook style)
+                    return this.persons.filter(p => {
+                        const matchesQuery = p.name.toLowerCase().includes(this.searchQuery.toLowerCase()) || 
+                                             (p.tag && p.tag.toLowerCase().includes(this.searchQuery.toLowerCase())) ||
+                                             (p.relation && p.relation.toLowerCase().includes(this.searchQuery.toLowerCase()));
+                        const matchesTag = this.selectedTagFilter === '' || p.tag === this.selectedTagFilter;
+                        return matchesQuery && matchesTag;
+                    }).sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+                },
+
+                get currentPersonMemos() {
+                    if (!this.selectedPerson) return [];
+                    return this.memos
+                        .filter(m => m.personId === this.selectedPerson.id)
+                        .sort((a, b) => new Date(b.date) - new Date(a.date));
+                },
+
+                getLastMemo(personId) {
+                    const pMemos = this.memos.filter(m => m.personId === personId);
+                    if (pMemos.length === 0) return '';
+                    pMemos.sort((a, b) => new Date(b.date) - new Date(a.date));
+                    return pMemos[0].content;
+                },
+
+                selectPerson(person) {
+                    this.selectedPerson = person;
+                    this.activeTab = 'detail';
+                },
+
+                // Person CRUD
+                openAddPersonModal() {
+                    this.isEditingPerson = false;
+                    this.personForm = { id: Date.now().toString(), name: '', tag: '', relation: '' };
+                    this.showPersonModal = true;
+                },
+
+                openEditPersonModal(person) {
+                    this.isEditingPerson = true;
+                    this.personForm = { ...person };
+                    this.showPersonModal = true;
+                },
+
+                closePersonModal() {
+                    this.showPersonModal = false;
+                },
+
+                savePerson() {
+                    if (!this.personForm.name.trim()) return;
+                    if (this.isEditingPerson) {
+                        const index = this.persons.findIndex(p => p.id === this.personForm.id);
+                        if (index !== -1) {
+                            this.persons[index] = { ...this.personForm };
+                            if (this.selectedPerson && this.selectedPerson.id === this.personForm.id) {
+                                this.selectedPerson = this.persons[index];
+                            }
+                        }
+                    } else {
+                        this.persons.unshift({ ...this.personForm });
+                    }
+                    this.saveData();
+                    this.closePersonModal();
+                },
+
+                deletePerson(id) {
+                    if (!confirm('この人物とすべてのメモを削除しますか？')) return;
+                    this.persons = this.persons.filter(p => p.id !== id);
+                    this.memos = this.memos.filter(m => m.personId !== id);
+                    this.saveData();
+                    this.closePersonModal();
+                    this.activeTab = 'list';
+                    this.selectedPerson = null;
+                },
+
+                // Memo CRUD
+                addMemo() {
+                    if (!this.newMemoContent.trim() || !this.selectedPerson) return;
+                    const newMemo = {
+                        id: 'm_' + Date.now(),
+                        personId: this.selectedPerson.id,
+                        content: this.newMemoContent.trim(),
+                        date: new Date().toISOString()
+                    };
+                    this.memos.unshift(newMemo);
+                    this.saveData();
+                    this.newMemoContent = '';
+                },
+
+                openEditMemoModal(memo) {
+                    this.memoForm = { ...memo };
+                    this.showMemoModal = true;
+                },
+
+                closeMemoModal() {
+                    this.showMemoModal = false;
+                },
+
+                updateMemo() {
+                    const index = this.memos.findIndex(m => m.id === this.memoForm.id);
+                    if (index !== -1) {
+                        this.memos[index].content = this.memoForm.content;
+                        this.saveData();
+                    }
+                    this.closeMemoModal();
+                },
+
+                deleteMemo(memoId) {
+                    if (!confirm('このメモを削除しますか？')) return;
+                    this.memos = this.memos.filter(m => m.id !== memoId);
+                    this.saveData();
+                },
+
+                formatDate(isoString) {
+                    const date = new Date(isoString);
+                    const y = date.getFullYear();
+                    const m = date.getMonth() + 1;
+                    const d = date.getDate();
+                    return `${y}年${m}月${d}日`;
+                },
+
+                // AI Integration using Gemini API
+                async openAiSummaryModal() {
+                    this.showAiModal = true;
+                    await this.runAiSummary();
+                },
+
+                async runAiSummary() {
+                    this.aiLoading = true;
+                    this.aiResultText = '';
+
+                    let prompt = '';
+                    let systemPrompt = 'あなたは優秀な対人関係の記憶アシスタントです。ユーザーが人とスムーズに会話できるよう、記録されたメモを整理・要約・アドバイスしてください。親しみやすく丁寧な日本語で回答してください。';
+
+                    if (this.activeTab === 'detail' && this.selectedPerson) {
+                        const pMemos = this.currentPersonMemos.map(m => `[${this.formatDate(m.date)}] ${m.content}`).join('\n');
+                        prompt = `以下の人物「${this.selectedPerson.name}」さん（関係・属性: ${this.selectedPerson.relation || 'なし'}, タグ: ${this.selectedPerson.tag || 'なし'}）との過去の会話メモです。\n\n${pMemos}\n\nこの方と次に会う時に話題にすると喜ばれそうなポイントや、これまでの重要なトピック、家族や趣味に関する情報をわかりやすく要約・整理してください。`;
+                    } else {
+                        const allDataSummary = this.persons.map(p => {
+                            const pMemos = this.memos.filter(m => m.personId === p.id).map(m => m.content).join(' / ');
+                            return `- ${p.name} (${p.tag || '未分類'}): ${pMemos || 'メモなし'}`;
+                        }).join('\n');
+                        prompt = `現在登録されている人々と最近のメモ一覧です:\n\n${allDataSummary}\n\n最近交流が多い人や、しばらく連絡していない人などを見極め、人間関係をスムーズに保つためのアドバイスや要約を簡潔に教えてください。`;
+                    }
+
+                    try {
+                        // Use user-defined API key if provided, otherwise empty string for automatic platform runtime injection
+                        const apiKey = this.userApiKey.trim();
+                        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+                        
+                        const payload = {
+                            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+                            systemInstruction: { parts: [{ text: systemPrompt }] }
+                        };
+
+                        const response = await fetch(apiUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+
+                        const result = await response.json();
+                        const candidate = result.candidates?.[0];
+                        if (candidate && candidate.content?.parts?.[0]?.text) {
+                            this.aiResultText = candidate.content.parts[0].text;
+                        } else {
+                            if (!apiKey && result.error) {
+                                this.aiResultText = 'APIキーが設定されていません。画面右上（歯車アイコン）からGemini APIキーを設定してください。';
+                            } else {
+                                this.aiResultText = 'AIからの応答を取得できませんでした。もう一度お試しください。';
+                            }
+                        }
+                    } catch (error) {
+                        this.aiResultText = 'ネットワークエラーが発生しました。インターネット接続やAPIキーをご確認ください。';
+                    } finally {
+                        this.aiLoading = false;
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+</html>
