@@ -59,7 +59,7 @@
     <!-- App Container (Mobile First, Max-width constraint for tablet/desktop) -->
     <div class="max-w-md mx-auto h-full flex flex-col bg-stone-50 shadow-2xl relative overflow-hidden">
 
-        <!-- Header -->
+        <!-- HEADER -->
         <header class="px-6 py-4 bg-stone-50/80 backdrop-blur-md border-b border-stone-200/60 flex items-center justify-between z-10 shrink-0">
             <div class="flex items-center space-x-2">
                 <span class="w-2 h-2 rounded-full bg-stone-800"></span>
@@ -67,11 +67,11 @@
             </div>
             <div class="flex items-center space-x-2">
                 <!-- Settings Button (API Key setup) -->
-                <button @click="openSettingsModal()" class="p-2 text-stone-500 hover:text-stone-800 transition rounded-xl bg-stone-100 hover:bg-stone-200" title="API設定">
+                <button @click="openSettingsModal()" class="p-2 text-stone-500 hover:text-stone-800 transition rounded-xl bg-stone-100 hover:bg-stone-200 cursor-pointer" title="API設定">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                 </button>
                 <!-- AI Assistant Quick Trigger -->
-                <button @click="openAiSummaryModal()" class="text-xs px-3 py-1.5 rounded-full bg-stone-900 text-stone-50 font-medium hover:bg-stone-800 transition flex items-center space-x-1 shadow-sm">
+                <button @click="openAiSummaryModal()" class="text-xs px-3.5 py-2 rounded-full bg-stone-900 text-stone-50 font-medium hover:bg-stone-800 transition flex items-center space-x-1 shadow-sm cursor-pointer">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                     <span x-text="activeTab === 'detail' && selectedPerson ? 'AIまとめ' : (activeTab === 'self' ? 'AIトーク生成' : 'AIアシスト')"></span>
                 </button>
@@ -375,7 +375,70 @@
         </div>
 
         <!-- MODAL: API Key Settings -->
-<!-- ... --- existing code ... -->
+        <div x-show="showSettingsModal" class="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" x-cloak>
+            <div @click.outside="showSettingsModal = false" class="bg-white w-full max-w-sm rounded-t-3xl sm:rounded-2xl p-6 space-y-4 shadow-2xl border border-stone-200">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-base font-bold text-stone-800">API設定 (Gemini API Key)</h3>
+                    <button @click="showSettingsModal = false" class="text-stone-400 hover:text-stone-600 p-1">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <p class="text-xs text-stone-500 leading-relaxed">
+                    アプリ内で直接AI機能を利用するには、ご自身のGoogle Gemini APIキーを入力してください（入力値はブラウザのLocalStorageにのみ保存されます）。未入力の場合は実行時にAI提供環境が使用できないかエラーになります。
+                </p>
+                <div class="space-y-2">
+                    <label class="block text-xs font-semibold text-stone-600">Gemini API Key</label>
+                    <input type="password" x-model="userApiKey" placeholder="AIzaSy..." class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:outline-none focus:border-stone-500">
+                </div>
+                <div class="flex space-x-2 pt-2">
+                    <button type="button" @click="saveApiKey()" class="w-full py-2.5 bg-stone-900 text-stone-50 rounded-xl text-sm font-medium hover:bg-stone-800 transition">
+                        保存する
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL: AI Summary & Talk Assistant -->
+        <div x-show="showAiModal" class="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" x-cloak>
+            <div @click.outside="showAiModal = false" class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-2xl p-6 space-y-4 shadow-2xl border border-stone-200 max-h-[85vh] flex flex-col">
+                <div class="flex items-center justify-between shrink-0">
+                    <div class="flex items-center space-x-2">
+                        <span class="w-2 h-2 rounded-full bg-indigo-600 animate-pulse"></span>
+                        <h3 class="text-base font-bold text-stone-800">AI アシスタント</h3>
+                    </div>
+                    <button @click="showAiModal = false" class="text-stone-400 hover:text-stone-600 p-1">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+
+                <div class="flex-1 overflow-y-auto space-y-3 py-2 pr-1">
+                    <template x-if="aiLoading">
+                        <div class="py-12 text-center space-y-3">
+                            <div class="w-8 h-8 border-2 border-stone-800 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                            <p class="text-xs text-stone-500">AIが思考中...</p>
+                        </div>
+                    </template>
+                    <template x-if="!aiLoading">
+                        <div class="space-y-3">
+                            <div class="bg-stone-50 p-4 rounded-2xl border border-stone-200/80 text-sm text-stone-700 whitespace-pre-wrap leading-relaxed" x-text="aiResultText"></div>
+                        </div>
+                    </template>
+                </div>
+
+                <div class="pt-2 border-t border-stone-100 flex items-center justify-between shrink-0">
+                    <button @click="runAiSummary()" class="text-xs text-stone-500 hover:text-stone-800 flex items-center space-x-1 py-1 px-2 rounded-lg bg-stone-100 transition">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                        <span>再生成する</span>
+                    </button>
+                    <button @click="showAiModal = false" class="px-4 py-2 bg-stone-900 text-stone-50 rounded-xl text-xs font-medium hover:bg-stone-800 transition">
+                        閉じる
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
     <script>
         function appData() {
             return {
@@ -646,7 +709,7 @@
 
                         const response = await fetch(apiUrl, {
                             method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                            headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify(payload)
                         });
 
@@ -655,14 +718,14 @@
                         if (candidate && candidate.content?.parts?.[0]?.text) {
                             this.aiResultText = candidate.content.parts[0].text;
                         } else {
-                            if (!apiKey && result.error) {
-                                this.aiResultText = 'APIキーが設定されていません。画面右上（歯車アイコン）からGemini APIキーを設定してください。';
+                            if (!apiKey && (result.error || !response.ok)) {
+                                this.aiResultText = 'APIキーが設定されていないか無効です。画面右上の歯車アイコン（⚙️）から正しいGemini APIキーを設定してください。';
                             } else {
-                                this.aiResultText = 'AIからの応答を取得できませんでした。もう一度お試しください。';
+                                this.aiResultText = 'AIからの応答を取得できませんでした。APIキーまたはネットワーク状態を確認してください。';
                             }
                         }
                     } catch (error) {
-                        this.aiResultText = 'ネットワークエラーが発生しました。インターネット接続やAPIキーをご確認ください。';
+                        this.aiResultText = 'ネットワークエラーが発生しました。インターネット接続をご確認ください。';
                     } finally {
                         this.aiLoading = false;
                     }
