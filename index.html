@@ -142,17 +142,19 @@
                     <div class="space-y-5">
                         <!-- Person Header Details -->
                         <div class="bg-white p-4 rounded-2xl border border-stone-200/80 shadow-sm flex items-center justify-between">
-                            <div class="flex items-center space-x-3.5">
-                                <div class="w-12 h-12 rounded-full bg-stone-900 text-stone-50 flex items-center justify-center font-bold text-base shadow-sm" x-text="selectedPerson.name.charAt(0)"></div>
-                                <div>
-                                    <h2 class="text-base font-bold text-stone-800" x-text="selectedPerson.name"></h2>
-                                    <div class="flex items-center space-x-2 mt-0.5">
-                                        <span class="text-[10px] px-2 py-0.5 rounded-full bg-stone-100 text-stone-600 font-medium" x-text="selectedPerson.tag || '未分類'"></span>
-                                        <span class="text-xs text-stone-400" x-text="selectedPerson.relation || ''"></span>
+                            <div class="flex items-center space-x-3.5 min-w-0 pr-2">
+                                <div class="w-12 h-12 rounded-full bg-stone-900 text-stone-50 flex items-center justify-center font-bold text-base shadow-sm shrink-0" x-text="selectedPerson.name.charAt(0)"></div>
+                                <div class="min-w-0">
+                                    <h2 class="text-base font-bold text-stone-800 truncate" x-text="selectedPerson.name"></h2>
+                                    <div class="flex items-center space-x-2 mt-0.5 flex-wrap gap-y-1">
+                                        <template x-if="selectedPerson.tag">
+                                            <span class="text-[10px] px-2 py-0.5 rounded-full bg-stone-100 text-stone-600 font-medium shrink-0" x-text="selectedPerson.tag"></span>
+                                        </template>
+                                        <span class="text-xs text-stone-400 truncate max-w-[150px]" x-text="selectedPerson.relation || ''"></span>
                                     </div>
                                 </div>
                             </div>
-                            <button @click="activeTab = 'list'" class="text-xs text-stone-500 hover:text-stone-800 px-3 py-1.5 rounded-lg bg-stone-100 transition font-medium">
+                            <button @click="activeTab = 'list'" class="text-xs text-stone-500 hover:text-stone-800 px-3 py-1.5 rounded-lg bg-stone-100 transition font-medium shrink-0">
                                 一覧へ戻る
                             </button>
                         </div>
@@ -176,6 +178,10 @@
                                         <div class="flex items-center justify-between">
                                             <span class="text-[11px] text-stone-400 font-medium" x-text="formatDate(memo.date)"></span>
                                             <div class="flex items-center space-x-1">
+                                                <!-- Individual AI Assistant Button for Person Memo -->
+                                                <button @click="openIndividualAiModal('person', memo, selectedPerson)" class="p-1 text-indigo-500 hover:text-indigo-700 transition" title="このメモについてAIアシスト">
+                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                                                </button>
                                                 <button @click="openEditMemoModal(memo)" class="p-1 text-stone-400 hover:text-stone-700 transition" title="編集">
                                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                                                 </button>
@@ -216,6 +222,10 @@
                             <div class="flex items-center justify-between">
                                 <span class="text-[11px] text-stone-400 font-medium" x-text="formatDate(memo.date)"></span>
                                 <div class="flex items-center space-x-1">
+                                    <!-- Individual AI Assistant Button for Self Memo -->
+                                    <button @click="openIndividualAiModal('self', memo, null)" class="p-1 text-indigo-500 hover:text-indigo-700 transition" title="この自分ニュースについてAIアシスト">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                                    </button>
                                     <button @click="openEditSelfMemoModal(memo)" class="p-1 text-stone-400 hover:text-stone-700 transition" title="編集">
                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                                     </button>
@@ -404,7 +414,7 @@
                 <div class="flex items-center justify-between shrink-0">
                     <div class="flex items-center space-x-2">
                         <span class="w-2 h-2 rounded-full bg-indigo-600 animate-pulse"></span>
-                        <h3 class="text-base font-bold text-stone-800">AI アシスタント</h3>
+                        <h3 class="text-base font-bold text-stone-800" x-text="aiModalTitle"></h3>
                     </div>
                     <button @click="showAiModal = false" class="text-stone-400 hover:text-stone-600 p-1">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -426,7 +436,7 @@
                 </div>
 
                 <div class="pt-2 border-t border-stone-100 flex items-center justify-between shrink-0">
-                    <button @click="runAiSummary()" class="text-xs text-stone-500 hover:text-stone-800 flex items-center space-x-1 py-1 px-2 rounded-lg bg-stone-100 transition">
+                    <button @click="rerunCurrentAi()" class="text-xs text-stone-500 hover:text-stone-800 flex items-center space-x-1 py-1 px-2 rounded-lg bg-stone-100 transition">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                         <span>再生成する</span>
                     </button>
@@ -459,7 +469,7 @@
                 ],
                 selfMemos: [
                     { id: 'sm1', content: '先週からジム通いを始めました。週2回で筋肉痛がすごい。', date: '2026-06-08T09:00:00.000Z' },
-                    { id: 'sm2', content: '週末に鎌倉に行って、美味しい生しらす丼を食べました。', date: '2026-06-05T18:00:00.000Z' }
+                    { id: 'sm2', content: '週末に鎌倉に行って、美味しい生しらす丼を食べました。', date: '2026-06-05T18:00:00.000Z' },
                 ],
                 
                 selectedPerson: null,
@@ -481,6 +491,10 @@
                 showAiModal: false,
                 aiLoading: false,
                 aiResultText: '',
+                aiModalTitle: 'AI アシスタント',
+                aiMode: 'summary', // 'summary', 'individual_person', 'individual_self'
+                currentAiTarget: null,
+                currentAiExtra: null,
 
                 init() {
                     // Load from localStorage if available
@@ -672,8 +686,46 @@
 
                 // AI Integration using Gemini API
                 async openAiSummaryModal() {
+                    this.aiMode = 'summary';
+                    this.aiModalTitle = 'AI アシスタント';
                     this.showAiModal = true;
                     await this.runAiSummary();
+                },
+
+                async openIndividualAiModal(type, memo, person) {
+                    this.aiMode = type === 'person' ? 'individual_person' : 'individual_self';
+                    this.aiModalTitle = type === 'person' ? `${person.name}さんとのメモAIアシスト` : '自分ニュースAIアシスト';
+                    this.currentAiTarget = memo;
+                    this.currentAiExtra = person;
+                    this.showAiModal = true;
+                    await this.runIndividualAi(type, memo, person);
+                },
+
+                rerunCurrentAi() {
+                    if (this.aiMode === 'summary') {
+                        this.runAiSummary();
+                    } else if (this.aiMode === 'individual_person') {
+                        this.runIndividualAi('person', this.currentAiTarget, this.currentAiExtra);
+                    } else if (this.aiMode === 'individual_self') {
+                        this.runIndividualAi('self', this.currentAiTarget, null);
+                    }
+                },
+
+                async runIndividualAi(type, memo, person) {
+                    this.aiLoading = true;
+                    this.aiResultText = '';
+                    let prompt = '';
+                    const systemPrompt = 'あなたは優秀な対人関係のアシスタントです。ユーザーが人とスムーズに会話できるよう、記録された特定のエピソードや自分ニュースをもとに、次に会う時の具体的な会話の切り出し方や盛り上げ方を親しみやすく丁寧な日本語で提案してください。';
+
+                    const selfDataSummary = this.selfMemos.map(m => `[${this.formatDate(m.date)}] ${m.content}`).join('\n');
+
+                    if (type === 'person') {
+                        prompt = `相手「${person.name}」さん（関係: ${person.relation || '未設定'}）についての以下の個別メモ・エピソード:\n「${memo.content}」（記録日: ${this.formatDate(memo.date)}）\n\nまた、最近自分に起きた出来事（自分ニュース）:\n${selfDataSummary || '特になし'}\n\nこの個別エピソードに焦点を当てて、次回お会いする際にどのようにこの話題に触れると喜ばれるか、具体的な会話例や質問のコツを提案してください。`;
+                    } else {
+                        prompt = `自分の最近の出来事（自分ニュース）の個別記録:\n「${memo.content}」（記録日: ${this.formatDate(memo.date)}）\n\nこの出来事を、友人や知人との雑談の中で自然に、かつ相手が興味を持ってくれるようにシェアするためのトークスクリプトや切り出し方を提案してください。`;
+                    }
+
+                    await this.callGeminiApi(prompt, systemPrompt);
                 },
 
                 async runAiSummary() {
@@ -698,6 +750,10 @@
                         prompt = `登録されている人々と最近のメモ:\n${allDataSummary}\n\n自分に起きた最近の出来事（自分ニュース）:\n${selfDataSummary || '特になし'}\n\n全体的な人間関係をスムーズに保つためのアドバイスや、最近の自分の話題の活かし方を簡潔に教えてください。`;
                     }
 
+                    await this.callGeminiApi(prompt, systemPrompt);
+                },
+
+                async callGeminiApi(prompt, systemPrompt) {
                     try {
                         const apiKey = this.userApiKey.trim();
                         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
