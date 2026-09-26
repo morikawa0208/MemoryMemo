@@ -73,7 +73,7 @@
                 <!-- AI Assistant Quick Trigger -->
                 <button @click="openAiSummaryModal()" class="text-xs px-3 py-1.5 rounded-full bg-stone-900 text-stone-50 font-medium hover:bg-stone-800 transition flex items-center space-x-1 shadow-sm">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                    <span x-text="activeTab === 'detail' && selectedPerson ? 'AIまとめ' : 'AIアシスト'"></span>
+                    <span x-text="activeTab === 'detail' && selectedPerson ? 'AIまとめ' : (activeTab === 'self' ? 'AIトーク生成' : 'AIアシスト')"></span>
                 </button>
             </div>
         </header>
@@ -193,9 +193,46 @@
                 </template>
             </div>
 
+            <!-- TAB 3: 自分に起きたこと（ライフログ）ページ -->
+            <div x-show="activeTab === 'self'" class="px-5 py-3 space-y-4">
+                <div class="bg-stone-100/80 p-4 rounded-2xl border border-stone-200/60 space-y-1">
+                    <h2 class="text-xs font-semibold uppercase tracking-wider text-stone-500">自分ニュース手帳</h2>
+                    <p class="text-xs text-stone-600 leading-relaxed">最近あった出来事、旅行、仕事の成果、ハマっていることなどを気軽に記録。人に会う時に「最近どう？」と聞かれた際のネタ帳になります。</p>
+                </div>
+
+                <template x-if="selfMemos.length === 0">
+                    <div class="text-center py-16 px-4">
+                        <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-stone-200 flex items-center justify-center text-stone-400">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                        </div>
+                        <p class="text-sm font-medium text-stone-600">自分の記録がまだありません</p>
+                        <p class="text-xs text-stone-400 mt-1">下から最近の出来事を残してみましょう</p>
+                    </div>
+                </template>
+
+                <div class="space-y-2.5">
+                    <template x-for="memo in selfMemos" :key="memo.id">
+                        <div class="bg-white p-4 rounded-2xl border border-stone-200/80 shadow-sm space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[11px] text-stone-400 font-medium" x-text="formatDate(memo.date)"></span>
+                                <div class="flex items-center space-x-1">
+                                    <button @click="openEditSelfMemoModal(memo)" class="p-1 text-stone-400 hover:text-stone-700 transition" title="編集">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                    </button>
+                                    <button @click="deleteSelfMemo(memo.id)" class="p-1 text-stone-400 hover:text-rose-600 transition" title="削除">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <p class="text-sm text-stone-700 whitespace-pre-wrap leading-relaxed" x-text="memo.content"></p>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
         </main>
 
-        <!-- FIXED BOTTOM CONTROL AREA (Tab bar + Search/Add on List or Input on Detail) -->
+        <!-- FIXED BOTTOM CONTROL AREA (Tab bar + Search/Add on List or Input on Detail / Self) -->
         <div class="absolute bottom-0 left-0 right-0 bg-stone-50/95 backdrop-blur-lg border-t border-stone-200/80 z-20 shadow-lg">
 
             <!-- TAB 1 BOTTOM CONTROLS (Search & Add Person) -->
@@ -226,6 +263,18 @@
                 </form>
             </div>
 
+            <!-- TAB 3 BOTTOM CONTROLS (Quick Self Memo Input) -->
+            <div x-show="activeTab === 'self'" class="px-5 pt-3 pb-2 space-y-2">
+                <form @submit.prevent="addSelfMemo()" class="flex items-center space-x-2">
+                    <div class="relative flex-1">
+                        <input type="text" x-model="newSelfMemoContent" placeholder="最近あった自分ニュース、旅行、仕事の進展..." class="w-full px-4 py-2.5 bg-white border border-stone-200 rounded-xl text-sm text-stone-800 placeholder-stone-400 focus:outline-none focus:border-stone-500 transition shadow-sm">
+                    </div>
+                    <button type="submit" class="px-4 py-2.5 bg-stone-900 text-stone-50 rounded-xl text-sm font-medium hover:bg-stone-800 transition shrink-0 shadow-sm">
+                        記録
+                    </button>
+                </form>
+            </div>
+
             <!-- TAB NAVIGATION BAR (Bottom-most) -->
             <nav class="flex items-center justify-around border-t border-stone-200/60 bg-stone-100/60 py-2">
                 <button @click="activeTab = 'list'" :class="activeTab === 'list' ? 'text-stone-900 font-semibold' : 'text-stone-400 hover:text-stone-600'" class="flex flex-col items-center flex-1 py-1 transition">
@@ -238,6 +287,10 @@
                     <template x-if="!selectedPerson">
                         <span class="absolute top-0 right-1/4 w-2 h-2 rounded-full bg-stone-300"></span>
                     </template>
+                </button>
+                <button @click="activeTab = 'self'" :class="activeTab === 'self' ? 'text-stone-900 font-semibold' : 'text-stone-400 hover:text-stone-600'" class="flex flex-col items-center flex-1 py-1 transition">
+                    <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                    <span class="text-[10px] tracking-wide">自分の記録</span>
                 </button>
             </nav>
 
@@ -300,72 +353,33 @@
             </div>
         </div>
 
-        <!-- MODAL: API Key Settings -->
-        <div x-show="showSettingsModal" class="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" x-cloak>
-            <div @click.outside="showSettingsModal = false" class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-2xl p-6 space-y-4 shadow-2xl border border-stone-200">
+        <!-- MODAL: Self Memo Edit -->
+        <div x-show="showSelfMemoModal" class="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" x-cloak>
+            <div @click.outside="closeSelfMemoModal()" class="bg-white w-full max-w-sm rounded-t-3xl sm:rounded-2xl p-6 space-y-4 shadow-2xl border border-stone-200">
                 <div class="flex items-center justify-between">
-                    <h3 class="text-base font-bold text-stone-800">APIキーの設定</h3>
-                    <button @click="showSettingsModal = false" class="text-stone-400 hover:text-stone-600 p-1">
+                    <h3 class="text-base font-bold text-stone-800">自分の記録を編集</h3>
+                    <button @click="closeSelfMemoModal()" class="text-stone-400 hover:text-stone-600 p-1">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>
                 </div>
-                <p class="text-xs text-stone-500 leading-relaxed">
-                    GitHub Pagesなどで公開してAI機能（Gemini API）を利用するには、Google AI Studioで取得したGemini APIキーを入力して保存してください（ブラウザのローカルストレージにのみ保存されます）。
-                </p>
-                <div class="space-y-2">
-                    <label class="block text-xs font-semibold text-stone-600">Gemini API Key</label>
-                    <input type="password" x-model="userApiKey" placeholder="AIzaSy..." class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:outline-none focus:border-stone-500">
-                </div>
-                <div class="pt-2">
-                    <button @click="saveApiKey()" class="w-full py-2.5 bg-stone-900 text-stone-50 rounded-xl text-sm font-medium hover:bg-stone-800 transition">
-                        保存する
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- MODAL: AI Summary & Assistant -->
-        <div x-show="showAiModal" class="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" x-cloak>
-            <div @click.outside="showAiModal = false" class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-2xl p-6 space-y-4 shadow-2xl border border-stone-200 max-h-[85vh] flex flex-col">
-                <div class="flex items-center justify-between shrink-0">
-                    <div class="flex items-center space-x-2">
-                        <div class="w-7 h-7 rounded-full bg-stone-900 text-stone-50 flex items-center justify-center text-xs">AI</div>
-                        <h3 class="text-base font-bold text-stone-800" x-text="activeTab === 'detail' && selectedPerson ? selectedPerson.name + '様との会話AIまとめ' : 'AIメモアシスタント'"></h3>
+                <form @submit.prevent="updateSelfMemo()" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-stone-600 mb-1">内容</label>
+                        <textarea x-model="selfMemoForm.content" rows="4" required class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:outline-none focus:border-stone-500 resize-none"></textarea>
                     </div>
-                    <button @click="showAiModal = false" class="text-stone-400 hover:text-stone-600 p-1">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    <button type="submit" class="w-full py-2.5 bg-stone-900 text-stone-50 rounded-xl text-sm font-medium hover:bg-stone-800 transition">
+                        更新する
                     </button>
-                </div>
-
-                <div class="flex-1 overflow-y-auto space-y-3 py-2 text-sm text-stone-700">
-                    <template x-if="aiLoading">
-                        <div class="flex flex-col items-center justify-center py-12 space-y-3">
-                            <div class="w-6 h-6 border-2 border-stone-800 border-t-transparent rounded-full animate-spin"></div>
-                            <p class="text-xs text-stone-400">AIが記憶を整理しています...</p>
-                        </div>
-                    </template>
-                    <template x-if="!aiLoading">
-                        <div class="space-y-4">
-                            <div class="bg-stone-50 p-4 rounded-xl border border-stone-200 leading-relaxed whitespace-pre-wrap text-sm" x-text="aiResultText"></div>
-                        </div>
-                    </template>
-                </div>
-
-                <div class="shrink-0 pt-2 border-t border-stone-100 flex items-center justify-between">
-                    <span class="text-[11px] text-stone-400">Gemini 3 Flash</span>
-                    <button @click="runAiSummary()" class="px-4 py-2 bg-stone-900 text-stone-50 rounded-xl text-xs font-medium hover:bg-stone-800 transition">
-                        もう一度生成する
-                    </button>
-                </div>
+                </form>
             </div>
         </div>
 
-    </div>
-
+        <!-- MODAL: API Key Settings -->
+<!-- ... --- existing code ... -->
     <script>
         function appData() {
             return {
-                activeTab: 'list', // 'list' or 'detail'
+                activeTab: 'list', // 'list', 'detail', or 'self'
                 searchQuery: '',
                 selectedTagFilter: '',
                 userApiKey: '',
@@ -380,9 +394,14 @@
                     { id: 'm2', personId: '1', content: 'お子さんが二人（小3と年長）。犬を飼い始めた（トイプードル）。', date: '2026-05-15T10:30:00.000Z' },
                     { id: 'm3', personId: '2', content: '表参道の新しいカフェでランチ。抹茶ラテが好き。夏に北海道旅行の予定。', date: '2026-06-01T12:00:00.000Z' }
                 ],
+                selfMemos: [
+                    { id: 'sm1', content: '先週からジム通いを始めました。週2回で筋肉痛がすごい。', date: '2026-06-08T09:00:00.000Z' },
+                    { id: 'sm2', content: '週末に鎌倉に行って、美味しい生しらす丼を食べました。', date: '2026-06-05T18:00:00.000Z' }
+                ],
                 
                 selectedPerson: null,
                 newMemoContent: '',
+                newSelfMemoContent: '',
 
                 // Modals state
                 showPersonModal: false,
@@ -391,6 +410,9 @@
 
                 showMemoModal: false,
                 memoForm: { id: '', personId: '', content: '' },
+
+                showSelfMemoModal: false,
+                selfMemoForm: { id: '', content: '' },
 
                 // AI state
                 showAiModal: false,
@@ -401,15 +423,18 @@
                     // Load from localStorage if available
                     const savedPersons = localStorage.getItem('memorymemo_persons');
                     const savedMemos = localStorage.getItem('memorymemo_memos');
+                    const savedSelfMemos = localStorage.getItem('memorymemo_selfmemos');
                     const savedKey = localStorage.getItem('memorymemo_apikey');
                     if (savedPersons) this.persons = JSON.parse(savedPersons);
                     if (savedMemos) this.memos = JSON.parse(savedMemos);
+                    if (savedSelfMemos) this.selfMemos = JSON.parse(savedSelfMemos);
                     if (savedKey) this.userApiKey = savedKey;
                 },
 
                 saveData() {
                     localStorage.setItem('memorymemo_persons', JSON.stringify(this.persons));
                     localStorage.setItem('memorymemo_memos', JSON.stringify(this.memos));
+                    localStorage.setItem('memorymemo_selfmemos', JSON.stringify(this.selfMemos));
                 },
 
                 saveApiKey() {
@@ -427,7 +452,6 @@
                 },
 
                 get filteredPersons() {
-                    // Filter and sort alphabetically by name (Japanese phonebook style)
                     return this.persons.filter(p => {
                         const matchesQuery = p.name.toLowerCase().includes(this.searchQuery.toLowerCase()) || 
                                              (p.tag && p.tag.toLowerCase().includes(this.searchQuery.toLowerCase())) ||
@@ -538,6 +562,43 @@
                     this.saveData();
                 },
 
+                // Self Memo CRUD
+                addSelfMemo() {
+                    if (!this.newSelfMemoContent.trim()) return;
+                    const newMemo = {
+                        id: 'sm_' + Date.now(),
+                        content: this.newSelfMemoContent.trim(),
+                        date: new Date().toISOString()
+                    };
+                    this.selfMemos.unshift(newMemo);
+                    this.saveData();
+                    this.newSelfMemoContent = '';
+                },
+
+                openEditSelfMemoModal(memo) {
+                    this.selfMemoForm = { ...memo };
+                    this.showSelfMemoModal = true;
+                },
+
+                closeSelfMemoModal() {
+                    this.showSelfMemoModal = false;
+                },
+
+                updateSelfMemo() {
+                    const index = this.selfMemos.findIndex(m => m.id === this.selfMemoForm.id);
+                    if (index !== -1) {
+                        this.selfMemos[index].content = this.selfMemoForm.content;
+                        this.saveData();
+                    }
+                    this.closeSelfMemoModal();
+                },
+
+                deleteSelfMemo(memoId) {
+                    if (!confirm('この自分の記録を削除しますか？')) return;
+                    this.selfMemos = this.selfMemos.filter(m => m.id !== memoId);
+                    this.saveData();
+                },
+
                 formatDate(isoString) {
                     const date = new Date(isoString);
                     const y = date.getFullYear();
@@ -557,21 +618,24 @@
                     this.aiResultText = '';
 
                     let prompt = '';
-                    let systemPrompt = 'あなたは優秀な対人関係の記憶アシスタントです。ユーザーが人とスムーズに会話できるよう、記録されたメモを整理・要約・アドバイスしてください。親しみやすく丁寧な日本語で回答してください。';
+                    let systemPrompt = 'あなたは優秀な対人関係のアシスタントです。ユーザーが人とスムーズに会話できるよう、ユーザー自身の最近の出来事（自分ニュース）と相手の情報を組み合わせて、自然で魅力的なトークスクリプトや話題の提案をしてください。親しみやすく丁寧な日本語で回答してください。';
+
+                    const selfDataSummary = this.selfMemos.map(m => `[${this.formatDate(m.date)}] ${m.content}`).join('\n');
 
                     if (this.activeTab === 'detail' && this.selectedPerson) {
                         const pMemos = this.currentPersonMemos.map(m => `[${this.formatDate(m.date)}] ${m.content}`).join('\n');
-                        prompt = `以下の人物「${this.selectedPerson.name}」さん（関係・属性: ${this.selectedPerson.relation || 'なし'}, タグ: ${this.selectedPerson.tag || 'なし'}）との過去の会話メモです。\n\n${pMemos}\n\nこの方と次に会う時に話題にすると喜ばれそうなポイントや、これまでの重要なトピック、家族や趣味に関する情報をわかりやすく要約・整理してください。`;
+                        prompt = `以下の人物「${this.selectedPerson.name}」さん（関係: ${this.selectedPerson.relation || 'なし'}）との過去の会話メモ:\n${pMemos}\n\nまた、最近自分（ユーザー）に起きた出来事（自分ニュース）:\n${selfDataSummary || '特になし'}\n\nこの方と次に会う時に、相手のこれまでの興味に触れつつ、自分の最近のニュースをどのように切り出して話すと自然で楽しい会話になるか、おすすめのトーク例や話題の構成を提案してください。`;
+                    } else if (this.activeTab === 'self') {
+                        prompt = `最近自分に起きた出来事（自分ニュース）の記録一覧です:\n${selfDataSummary || '特になし'}\n\nこれらの最近の出来事を、知人や友人との雑談の中で自然に、かつ面白くシェアするためのトークの切り出し方や話題づくりのコツをいくつか提案してください。`;
                     } else {
                         const allDataSummary = this.persons.map(p => {
                             const pMemos = this.memos.filter(m => m.personId === p.id).map(m => m.content).join(' / ');
                             return `- ${p.name} (${p.tag || '未分類'}): ${pMemos || 'メモなし'}`;
                         }).join('\n');
-                        prompt = `現在登録されている人々と最近のメモ一覧です:\n\n${allDataSummary}\n\n最近交流が多い人や、しばらく連絡していない人などを見極め、人間関係をスムーズに保つためのアドバイスや要約を簡潔に教えてください。`;
+                        prompt = `登録されている人々と最近のメモ:\n${allDataSummary}\n\n自分に起きた最近の出来事（自分ニュース）:\n${selfDataSummary || '特になし'}\n\n全体的な人間関係をスムーズに保つためのアドバイスや、最近の自分の話題の活かし方を簡潔に教えてください。`;
                     }
 
                     try {
-                        // Use user-defined API key if provided, otherwise empty string for automatic platform runtime injection
                         const apiKey = this.userApiKey.trim();
                         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
                         
@@ -582,7 +646,7 @@
 
                         const response = await fetch(apiUrl, {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                        headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify(payload)
                         });
 
