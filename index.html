@@ -79,7 +79,7 @@
         </header>
 
         <!-- Main Content Area with Increased Bottom Padding -->
-        <main class="flex-1 overflow-y-auto pb-44 pt-2">
+        <main class="flex-1 overflow-y-auto pb-56 pt-2">
 
             <!-- TAB 1: 人物一覧ページ -->
             <div x-show="activeTab === 'list'" class="px-5 py-3 space-y-4">
@@ -243,7 +243,7 @@
         </main>
 
         <!-- FIXED BOTTOM CONTROL AREA (Tab bar + Search/Add on List or Input on Detail / Self) with Comfortable Spacing -->
-        <div class="absolute bottom-0 left-0 right-0 bg-stone-50/95 backdrop-blur-lg border-t border-stone-200/80 z-20 shadow-lg">
+        <div class="absolute bottom-4 left-4 right-4 bg-stone-50/95 backdrop-blur-lg border border-stone-200/80 z-20 shadow-xl rounded-3xl overflow-hidden">
 
             <!-- TAB 1 BOTTOM CONTROLS (Search & Add Person) -->
             <div x-show="activeTab === 'list'" class="px-5 pt-3.5 pb-2.5 space-y-2.5">
@@ -286,7 +286,7 @@
             </div>
 
             <!-- TAB NAVIGATION BAR (Bottom-most with comfortable vertical padding) -->
-            <nav class="flex items-center justify-around border-t border-stone-200/60 bg-stone-100/70 py-2.5 px-2">
+            <nav class="flex items-center justify-around border-t border-stone-200/60 bg-stone-100/80 py-3 px-2">
                 <button @click="activeTab = 'list'" :class="activeTab === 'list' ? 'text-stone-900 font-semibold' : 'text-stone-400 hover:text-stone-600'" class="flex flex-col items-center flex-1 py-1 transition">
                     <svg class="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
                     <span class="text-[11px] tracking-wide">人物一覧</span>
